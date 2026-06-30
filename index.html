@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVSepLess Models & Ensemble Preset Creator</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --primary: #4a90e2;
+            --primary-hover: #357abd;
+            --card-bg: #fff;
+            --border: #ccc;
+            --highlight: #0aa955;
+            --warning-bg: #fff3cd;
+            --warning-text: #856404;
+            --danger: #e74c3c;
+            --danger-hover: #c0392b;
+        }
+
+        body {
+            font-family: "Montserrat", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 400;
+            font-style: normal;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        input, button, select, textarea {
+            font-family: inherit;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            outline: none;
+            color: var(--text-color);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            flex: 1;
+            text-align: center;
+        }
+
+        .tab-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .tab-btn.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Inputs */
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        /* Models List */
+        details {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: var(--card-bg);
+        }
+
+        summary {
+            padding: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #fafafa;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary::after {
+            content: '▼';
+            font-size: 12px;
+            color: #888;
+        }
+
+        details[open] summary::after {
+            content: '▲';
+            color: white;
+        }
+        
+        details[open] summary {
+            background: var(--primary-hover);
+            color: white;
+        }
+
+        .model-info {
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            line-height: 1.6;
+            overflow-wrap: break-word;
+        }
+
+        .stem-badge {
+            display: inline-block;
+            background: #bbbfbb;
+            color: black;
+            padding: 3px 8px;
+            border-radius: 0px;
+            font-size: 13px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .stem-badge.target {
+            background: var(--primary-hover);
+            color: white;
+            font-weight: bold;
+        }
+
+        .warning {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+            border-left: 4px solid #ffeeba;
+        }
+
+        /* === КАСКАДНЫЕ ФИЛЬТРУЕМЫЕ СЕЛЕКТОРЫ (GRADIO-LIKE) === */
+        .custom-select-container {
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
+        }
+
+        .custom-select-container * {
+            box-sizing: border-box;
+        }
+
+        .custom-select-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-select-input {
+            width: 100%;
+            padding: 10px;
+            padding-right: 30px; /* Место под стрелочку */
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fff;
+            min-height: 41px;
+            cursor: pointer;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .custom-select-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .custom-select-input-wrapper::after {
+            content: '▼';
+            font-size: 10px;
+            color: #888;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            transition: transform 0.2s;
+        }
+
+        .custom-select-container.open .custom-select-input-wrapper::after {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .custom-select-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-top: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+
+        .custom-select-container.open .custom-select-options {
+            display: block;
+        }
+
+        .custom-option {
+            padding: 11px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s, color 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .custom-option:hover {
+            background: #f0f4f8;
+            color: var(--primary-hover);
+        }
+
+        .custom-option.selected {
+            background: var(--primary);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .custom-option.disabled {
+            color: #aaa;
+            cursor: not-allowed;
+            background: #fafafa;
+        }
+
+        /* === ТАБЛИЦА АНСАМБЛЯ === */
+        .preset-grid-header {
+            display: grid;
+            grid-template-columns: minmax(0, 2.5fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) 110px;
+            gap: 12px;
+            font-weight: bold;
+            padding: 10px 15px;
+            background: #eaeaea;
+            border-radius: 4px 4px 0 0;
+            border: 1px solid var(--border);
+            border-bottom: none;
+        }
+
+        .preset-grid-header div {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        #preset-container {
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 0 0 4px 4px;
+            margin-bottom: 20px;
+            max-height: 600px;
+            overflow-y: visible;
+        }
+
+        .preset-row {
+            display: grid;
+            grid-template-columns: minmax(0, 2.5fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) 110px;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            background: #fafafa;
+        }
+
+        .preset-row:last-child {
+            border-bottom: none;
+        }
+
+        .preset-row .row-col {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .preset-row input {
+            margin-bottom: 0;
+        }
+
+        .text-center {
+            text-align: center;
+            justify-content: center;
+        }
+        
+        .row-col.invert-col {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .preset-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .mobile-label {
+            display: none;
+        }
+
+        /* Кнопки и Действия */
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .footer-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        /* === АДАПТИВНОСТЬ ДЛЯ СМАРТФОНОВ === */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .tabs {
+                flex-direction: column;
+                gap: 5px;
+                border-bottom: none;
+            }
+
+            .tab-btn {
+                border: 1px solid var(--border);
+                border-radius: 4px;
+            }
+
+            .tab-btn.active {
+                background: #eef5fc;
+                border-color: var(--primary);
+            }
+
+            .preset-grid-header {
+                display: none;
+            }
+
+            #preset-container {
+                border: none;
+                background: transparent;
+            }
+
+            .preset-row {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 15px;
+                border: 1px solid var(--border);
+                background: #fff;
+                margin-bottom: 15px;
+                border-radius: 6px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            }
+
+            .row-col {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                min-width: 0;
+            }
+
+            .mobile-label {
+                display: block;
+                font-weight: 600;
+                color: #555;
+                font-size: 13px;
+                width: 90px;
+                flex-shrink: 0;
+            }
+
+            .custom-select-container, .row-col input[type="number"] {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .row-col.invert-col {
+                justify-content: space-between;
+            }
+
+            .row-col.invert-col input[type="checkbox"] {
+                margin-right: auto;
+                margin-left: 10px;
+            }
+
+            .row-col.action-col {
+                margin-top: 5px;
+            }
+
+            .row-col.action-col button {
+                width: 100%;
+            }
+
+            .footer-actions {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('models')">Информация о моделях</button>
+        <button class="tab-btn" onclick="switchTab('ensemble')">Генерация пресета авто-ансамбля</button>
+    </div>
+
+    <div id="tab-models" class="tab-content active">
+        <input type="text" id="searchInput" placeholder="Поиск по короткому/полному имени, типу, категории или стемам..." oninput="filterModels()">
+        <div id="loading" class="loading">Загрузка данных...</div>
+        <div id="modelsList"></div>
+    </div>
+
+    <div id="tab-ensemble" class="tab-content">
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 8px;">Имя файла пресета:</label>
+            <input type="text" id="presetNameInput" placeholder="Например: vocals_max_ensemble" value="auto_ensemble_preset">
+        </div>
+
+        <div class="preset-grid-header">
+            <div>Имя модели</div>
+            <div>Выбранный стем</div>
+            <div class="text-center">Инверсия</div>
+            <div>Веса</div>
+            <div class="text-center">Действие</div>
+        </div>
+
+        <div id="preset-container"></div>
+
+        <button class="btn-block" onclick="addPresetRow()">+ Добавить модель в ансамбль</button>
+
+        <div class="footer-actions">
+            <button class="btn-danger" onclick="clearPreset()">🗑️ Очистить ансамбль</button>
+            <button style="background: var(--highlight);" onclick="savePresetJSON()">💾 Сохранить JSON-пресет</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const JSON_URL = 'https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/models.json';
+    let modelsData = {};
+
+    function copyThisText(text) {
+        navigator.clipboard.writeText(text);
+    }
+
+    // Запуск приложения
+    async function init() {
+        try {
+            const response = await fetch(JSON_URL);
+            modelsData = await response.json();
+            document.getElementById('loading').style.display = 'none';
+            renderModels();
+            addPresetRow();
+        } catch (error) {
+            document.getElementById('loading').innerHTML = `❌ Ошибка при загрузке данных: ${error.message}`;
+        }
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        event.currentTarget.classList.add('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    function renderModels(filterText = '') {
+        const container = document.getElementById('modelsList');
+        container.innerHTML = '';
+        const query = filterText.toLowerCase().trim();
+
+        for (const [shortName, model] of Object.entries(modelsData)) {
+            const searchableText = `${shortName} ${model.full_name || ''} ${model.model_type || ''} ${model.category || ''} ${(model.stems || []).join(' ')}`.toLowerCase();
+
+            if (query && !searchableText.includes(query)) {
+                continue;
+            }
+
+            const stemsHtml = (model.stems || []).map(stem => {
+                const isTarget = stem === model.target_instrument;
+                return `<span class="stem-badge ${isTarget ? 'target' : ''}" title="${isTarget ? 'Целевой инструмент' : ''}">${stem}</span>`;
+            }).join('');
+
+            let configWarning = '';
+            const type = (model.model_type || '').toLowerCase();
+            if (['medley_vox', 'vr', 'mdxnet'].includes(type) && model.config_url) {
+                if (['medley_vox'].includes(type)) {
+                    configWarning = `<div class="warning"><strong>Внимание:</strong> Конфигурация создана для MVSepLess, несовместима с Medley-Vox.</div>`;
+                } else {
+                    configWarning = `<div class="warning"><strong>Внимание:</strong> Конфигурация создана для MVSepLess, несовместима с UVR.</div>`;
+                }
+            }
+
+            const details = document.createElement('details');
+            details.innerHTML = `
+                <summary>${model.full_name || shortName}<br><br>(${shortName})</summary>
+                <div class="model-info">
+                    <p><strong>Короткое имя (для инференса):</strong> <button onclick="copyThisText('${shortName}')" style="display: inline-block; padding: 5px 10px; margin-top:5px;">${shortName}</button></p>
+                    <p><strong>Тип модели:</strong> ${model.model_type || 'Неизвестно'}</p>
+                    <p><strong>Категория:</strong> ${model.category || 'Без категории'}</p>
+                    <p><strong>Стемы:</strong> ${stemsHtml}</p>
+                    ${model.checkpoint_url ? `<p><strong>Чекпоинт:</strong> <a href="${model.checkpoint_url}" target="_blank">Скачать</a></p>` : ''}
+                    ${model.config_url ? `<p><strong>Конфиг:</strong> <a href="${model.config_url}" target="_blank">Скачать</a></p>` : ''}
+                    ${configWarning}
+                </div>
+            `;
+            container.appendChild(details);
+        }
+    }
+
+    function filterModels() {
+        renderModels(document.getElementById('searchInput').value);
+    }
+
+    /* === ЛОГИКА ФИЛЬТРУЕМЫХ СЕЛЕКТОРОВ (GRADIO-LIKE) === */
+
+    function openDropdown(input) {
+        const container = input.closest('.custom-select-container');
+        if (container.classList.contains('open')) return;
+
+        // Закрываем все остальные открытые списки
+        document.querySelectorAll('.custom-select-container').forEach(c => {
+            if (c !== container) closeDropdown(c);
+        });
+
+        container.classList.add('open');
+
+        // ИСПРАВЛЕНИЕ: Переносим курсор в самый конец текста вместо вызова .select().
+        // Это предотвращает появление контекстного меню Android/iOS (Копировать/Вырезать)
+        setTimeout(() => {
+            input.setSelectionRange(input.value.length, input.value.length);
+        }, 0);
+
+        // Сбрасываем фильтры (показываем все опции) при открытии
+        container.querySelectorAll('.custom-option').forEach(opt => opt.style.display = '');
+    }
+
+    function closeDropdown(container) {
+        if (!container.classList.contains('open')) return;
+        container.classList.remove('open');
+        
+        // Восстанавливаем корректное значение, если юзер стер текст или ввел абракадабру
+        const input = container.querySelector('.custom-select-input');
+        const val = container.getAttribute('data-value');
+        if (val) {
+            const selectedOpt = container.querySelector(`.custom-option[data-value="${val}"]`);
+            if (selectedOpt) {
+                input.value = selectedOpt.innerText;
+            }
+        } else {
+            if (!input.hasAttribute('readonly')) {
+                input.value = '';
+            }
+        }
+    }
+
+    function filterOptions(input) {
+        const container = input.closest('.custom-select-container');
+        const query = input.value.toLowerCase().trim();
+        const options = container.querySelectorAll('.custom-option');
+
+        // Если начали вводить текст, принудительно открываем список
+        container.classList.add('open');
+
+        options.forEach(opt => {
+            if (opt.classList.contains('disabled')) return;
+            const text = opt.innerText.toLowerCase();
+            if (text.includes(query)) {
+                opt.style.display = '';
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+    }
+
+    function selectOption(optionElement) {
+        if (optionElement.classList.contains('disabled')) return;
+
+        const container = optionElement.closest('.custom-select-container');
+        const input = container.querySelector('.custom-select-input');
+        const val = optionElement.getAttribute('data-value');
+        
+        container.setAttribute('data-value', val);
+        input.value = optionElement.innerText;
+        
+        container.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+        optionElement.classList.add('selected');
+        container.classList.remove('open');
+
+        if (container.classList.contains('model-select-container')) {
+            handleModelChange(container);
+        }
+    }
+
+    // Закрытие по клику вне списка
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.custom-select-container')) {
+            document.querySelectorAll('.custom-select-container').forEach(c => closeDropdown(c));
+        }
+    });
+
+    /* === ЛОГИКА ТАБЛИЦЫ АНСАМБЛЯ === */
+
+    function addPresetRow() {
+        const container = document.getElementById('preset-container');
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'preset-row';
+
+        let modelOptionsHtml = '';
+        for (const shortName of Object.keys(modelsData)) {
+            modelOptionsHtml += `<div class="custom-option" data-value="${shortName}" onclick="selectOption(this)">${shortName}</div>`;
+        }
+
+        rowDiv.innerHTML = `
+            <div class="row-col">
+                <span class="mobile-label">Модель:</span>
+                <div class="custom-select-container model-select-container" data-value="">
+                    <div class="custom-select-input-wrapper">
+                        <input type="text" class="custom-select-input" placeholder="Выберите модель..." onfocus="openDropdown(this)" onclick="openDropdown(this)" oninput="filterOptions(this)" autocomplete="off">
+                    </div>
+                    <div class="custom-select-options">${modelOptionsHtml}</div>
+                </div>
+            </div>
+            <div class="row-col">
+                <span class="mobile-label">Стем:</span>
+                <div class="custom-select-container stem-select-container" data-value="">
+                    <div class="custom-select-input-wrapper">
+                        <input type="text" class="custom-select-input" placeholder="Сначала выберите модель" onfocus="openDropdown(this)" onclick="openDropdown(this)" oninput="filterOptions(this)" autocomplete="off" readonly>
+                    </div>
+                    <div class="custom-select-options">
+                        <div class="custom-option disabled">Сначала выберите модель</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row-col invert-col">
+                <span class="mobile-label">Инверсия:</span>
+                <input type="checkbox" class="invert-check">
+            </div>
+            <div class="row-col">
+                <span class="mobile-label">Вес:</span>
+                <input type="number" step="0.1" value="1.0" class="weight-input">
+            </div>
+            <div class="row-col action-col text-center">
+                <button class="btn-danger" onclick="this.closest('.preset-row').remove()" style="padding: 10px 15px;">Удалить</button>
+            </div>
+        `;
+
+        container.appendChild(rowDiv);
+    }
+
+    function handleModelChange(modelContainer) {
+        const rowDiv = modelContainer.closest('.preset-row');
+        const stemContainer = rowDiv.querySelector('.stem-select-container');
+        const stemInput = stemContainer.querySelector('.custom-select-input');
+        const stemOptionsDiv = stemContainer.querySelector('.custom-select-options');
+        const selectedModel = modelContainer.getAttribute('data-value');
+
+        stemOptionsDiv.innerHTML = '';
+        stemContainer.setAttribute('data-value', '');
+        stemInput.value = '';
+        stemInput.placeholder = 'Выберите стем...';
+        stemInput.removeAttribute('readonly');
+        
+        if (modelsData[selectedModel] && modelsData[selectedModel].stems) {
+            modelsData[selectedModel].stems.forEach(stem => {
+                const isTarget = stem === modelsData[selectedModel].target_instrument;
+                
+                const opt = document.createElement('div');
+                opt.className = 'custom-option';
+                if (isTarget) opt.className += ' selected';
+                opt.setAttribute('data-value', stem);
+                opt.innerText = stem;
+                opt.onclick = function() { selectOption(this); };
+                
+                stemOptionsDiv.appendChild(opt);
+                
+                if (isTarget) {
+                    stemContainer.setAttribute('data-value', stem);
+                    stemInput.value = stem;
+                }
+            });
+        }
+    }
+
+    function clearPreset() {
+        if (confirm("Вы уверены, что хотите полностью очистить пресет?")) {
+            document.getElementById('preset-container').innerHTML = '';
+        }
+    }
+
+    function savePresetJSON() {
+        const rows = document.querySelectorAll('.preset-row');
+        const presetArray = [];
+        let hasErrors = false;
+
+        rows.forEach(row => {
+            const modelContainer = row.querySelector('.model-select-container');
+            const stemContainer = row.querySelector('.stem-select-container');
+            
+            const model = modelContainer ? modelContainer.getAttribute('data-value') : '';
+            const stem = stemContainer ? stemContainer.getAttribute('data-value') : '';
+            const invert = row.querySelector('.invert-check').checked;
+            const weight = parseFloat(row.querySelector('.weight-input').value);
+
+            if (!model || !stem || isNaN(weight)) {
+                hasErrors = true;
+            } else {
+                presetArray.push([model, stem, invert, weight]);
+            }
+        });
+
+        if (hasErrors) {
+            alert("Пожалуйста, убедитесь, что во всех добавленных строках выбраны модели и стемы.");
+            return;
+        }
+
+        if (presetArray.length === 0) {
+            alert("Пресет пуст. Добавьте хотя бы одну модель.");
+            return;
+        }
+
+        let fileName = document.getElementById('presetNameInput').value.trim() || "auto_ensemble_preset";
+        if (!fileName.endsWith('.json')) {
+            fileName += '.json';
+        }
+
+        const blob = new Blob([JSON.stringify(presetArray, null, 4)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
