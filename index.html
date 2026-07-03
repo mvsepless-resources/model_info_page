@@ -242,6 +242,10 @@
         .custom-select-container.open .custom-select-options {
             display: block;
         }
+		
+		.custom-select-container.open {
+			z-index: 9999;
+		}
 
         .custom-option {
             padding: 11px 15px;
@@ -296,8 +300,6 @@
             background: #fff;
             border-radius: 0 0 4px 4px;
             margin-bottom: 20px;
-            max-height: 600px;
-            overflow-y: auto;
         }
 
         .preset-row {
@@ -737,39 +739,59 @@
         container.appendChild(rowDiv);
     }
 
-    function handleModelChange(modelContainer) {
-        const rowDiv = modelContainer.closest('.preset-row');
-        const stemContainer = rowDiv.querySelector('.stem-select-container');
-        const stemInput = stemContainer.querySelector('.custom-select-input');
-        const stemOptionsDiv = stemContainer.querySelector('.custom-select-options');
-        const selectedModel = modelContainer.getAttribute('data-value');
+	function handleModelChange(modelContainer) {
+		const rowDiv = modelContainer.closest('.preset-row');
+		const stemContainer = rowDiv.querySelector('.stem-select-container');
+		const stemInput = stemContainer.querySelector('.custom-select-input');
+		const stemOptionsDiv = stemContainer.querySelector('.custom-select-options');
+		const selectedModel = modelContainer.getAttribute('data-value');
 
-        stemOptionsDiv.innerHTML = '';
-        stemContainer.setAttribute('data-value', '');
-        stemInput.value = '';
-        stemInput.placeholder = 'Выберите стем...';
-        stemInput.removeAttribute('readonly');
-        
-        if (modelsData[selectedModel] && modelsData[selectedModel].stems) {
-            modelsData[selectedModel].stems.forEach(stem => {
-                const isTarget = stem === modelsData[selectedModel].target_instrument;
-                
-                const opt = document.createElement('div');
-                opt.className = 'custom-option';
-                if (isTarget) opt.className += ' selected';
-                opt.setAttribute('data-value', stem);
-                opt.innerText = stem;
-                opt.onclick = function() { selectOption(this); };
-                
-                stemOptionsDiv.appendChild(opt);
-                
-                if (isTarget) {
-                    stemContainer.setAttribute('data-value', stem);
-                    stemInput.value = stem;
-                }
-            });
-        }
-    }
+		// Очистка предыдущих значений
+		stemOptionsDiv.innerHTML = '';
+		stemContainer.setAttribute('data-value', '');
+		stemInput.value = '';
+		stemInput.placeholder = 'Выберите стем...';
+		stemInput.removeAttribute('readonly');
+		
+		const modelData = modelsData[selectedModel];
+
+		if (modelData && modelData.stems && modelData.stems.length > 0) {
+			// Определяем, какой стем выбрать по умолчанию
+			let targetStem = modelData.target_instrument;
+			
+			// Если target_instrument не задан или его нет в списке стемов, берем первый стем
+			if (!targetStem || !modelData.stems.includes(targetStem)) {
+				targetStem = modelData.stems[0];
+			}
+
+			modelData.stems.forEach(stem => {
+				const isTarget = stem === targetStem;
+				
+				const opt = document.createElement('div');
+				opt.className = 'custom-option';
+				if (isTarget) opt.className += ' selected';
+				opt.setAttribute('data-value', stem);
+				opt.innerText = stem;
+				opt.onclick = function() { selectOption(this); };
+				
+				stemOptionsDiv.appendChild(opt);
+				
+				// Автоматическая подстановка выбранного стема
+				if (isTarget) {
+					stemContainer.setAttribute('data-value', stem);
+					stemInput.value = stem;
+				}
+			});
+		} else {
+			// Защита от ошибок, если у модели вдруг нет стемов в JSON
+			stemInput.placeholder = 'Нет доступных стемов';
+			stemInput.setAttribute('readonly', 'true');
+			const opt = document.createElement('div');
+			opt.className = 'custom-option disabled';
+			opt.innerText = 'Нет доступных стемов';
+			stemOptionsDiv.appendChild(opt);
+		}
+	}
 
     function clearPreset() {
         if (confirm("Вы уверены, что хотите полностью очистить пресет?")) {
